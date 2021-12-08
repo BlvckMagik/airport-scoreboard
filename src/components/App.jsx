@@ -1,12 +1,12 @@
 import React from 'react';
 import { Provider } from 'react-redux';
-import Weather from './weather/Weather.jsx';
-import store from './store.js';
+import Page from './Page.jsx';
+import store from '../store.js';
 
 const App = () => {
   return (
     <Provider store={store}>
-      <Weather />
+      <Page />
     </Provider>
   );
 };

@@ -12,6 +12,10 @@
 body {
   background-color: #e7efec;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  &::-webkit-scrollbar {
+    width: 0px;
+    background: rgba(255, 255, 255, 0);
+  }
 }
 
 .page {

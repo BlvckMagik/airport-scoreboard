@@ -1,14 +1,15 @@
 import moment from 'moment';
 
-const dateNow = moment(new Date()).format('D-MM-YYYY');
-const baseUrl = `https://api.iev.aero/api/flights/${dateNow}`;
+const baseUrl = `https://api.iev.aero/api/flights`;
 
-export const fetchFlights = () => {
-  return fetch(baseUrl).then(response => {
-    if (response.ok) {
-      return response.json();
-    } else {
-      throw new Error('Failed to load data');
+export const fetchFlights = (date = new Date()) => {
+  return fetch(`${baseUrl}/${moment(new Date(date)).format('D-MM-YYYY')}`).then(
+    response => {
+      if (response.ok) {
+        return response.json();
+      } else {
+        throw new Error('Failed to load data');
+      }
     }
-  });
+  );
 };

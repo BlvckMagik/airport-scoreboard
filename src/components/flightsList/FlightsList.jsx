@@ -1,24 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import './flightsList.scss';
-import FlightInfo from './FlightInfo.jsx';
-import { connect } from 'react-redux';
-import { getFlightsData } from '../../flights.actions';
+import { Switch, Link, Route, BrowserRouter } from 'react-router-dom';
+import { connect, useSelector } from 'react-redux';
+
 import {
   departureListSelector,
   arrivalListSelector,
 } from '../../flights.selectors';
-import { Switch, Link, Route, BrowserRouter } from 'react-router-dom';
+import { getFlightsData } from '../../flights.actions';
+import FlightInfo from './FlightInfo.jsx';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import TextField from '@mui/material/TextField';
+import CircularProgress from '@mui/material/CircularProgress';
 
-const FlightsList = ({
-  getFlightsData,
-  departuresList = [],
-  arrivalsList = [],
-}) => {
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+
+import './flightsList.scss';
+
+const FlightsList = ({ getFlightsData }) => {
   const [departuresSelected, changeSelected] = useState(true);
+  const [date, setDate] = useState(
+    localStorage.getItem('flightsDate')
+      ? new Date(localStorage.getItem('flightsDate'))
+      : new Date('11 11 2021')
+  );
 
-  useEffect(() => {
-    getFlightsData();
-  }, []);
+  const departuresList = useSelector(state =>
+    departureListSelector(state, date)
+  );
+  const arrivalsList = useSelector(state => arrivalListSelector(state, date));
+  const isDataFetching = useSelector(state => state.isDataFetching);
+
+  console.log(isDataFetching);
 
   const noFlights = (
     <tr>
@@ -28,82 +41,87 @@ const FlightsList = ({
     </tr>
   );
 
-  const buttons = departuresSelected ? (
-    <>
-      <Link className='btn btn-selected buttons__departures' to='/'>
-        <button>DEPARTURES</button>
-      </Link>
-      <Link
-        onClick={() => changeSelected(false)}
-        className='btn buttons__arrivals'
-        to='/arrivals'
-      >
-        <button>ARRIVALS</button>
-      </Link>
-    </>
-  ) : (
-    <>
-      <Link
-        onClick={() => changeSelected(true)}
-        className='btn buttons__departures'
-        to='/'
-      >
-        <button>DEPARTURES</button>
-      </Link>
-      <Link className='btn btn-selected  buttons__arrivals' to='/arrivals'>
-        <button>ARRIVALS</button>
-      </Link>
-    </>
-  );
+  const showData = data =>
+    data.length === 0
+      ? noFlights
+      : data.map(flightData => (
+          <FlightInfo key={flightData.ID} flightData={flightData} />
+        ));
+
+  useEffect(() => {
+    getFlightsData(date);
+  }, [date]);
 
   return (
     <BrowserRouter>
       <div className='board'>
-        <div className='buttons'>{buttons}</div>
+        <div className='buttons'>
+          <Link
+            className={`btn buttons__departures ${
+              departuresSelected ? 'btn-selected' : ''
+            }`}
+            {...(!departuresSelected && {
+              onClick: () => changeSelected(!departuresSelected),
+            })}
+            to='/'
+          >
+            <button>DEPARTURES</button>
+          </Link>
+          <Link
+            className={`btn buttons__arrivals ${
+              !departuresSelected ? 'btn-selected' : ''
+            }`}
+            {...(departuresSelected && {
+              onClick: () => changeSelected(!departuresSelected),
+            })}
+            to='/arrivals'
+          >
+            <button>ARRIVALS</button>
+          </Link>
+        </div>
       </div>
-      <table className='table'>
-        <thead className='table__header'>
-          <tr>
-            <th>Terminal</th>
-            <th>Local time</th>
-            <th>Destination</th>
-            <th>Status</th>
-            <th>Airline</th>
-            <th>Flight</th>
-          </tr>
-        </thead>
-        <tbody className='table__body'>
-          <Switch>
-            <Route exact path='/'>
-              {departuresList.length === 0
-                ? noFlights
-                : departuresList.map(flightData => (
-                    <FlightInfo key={flightData.ID} flightData={flightData} />
-                  ))}
-            </Route>
-            <Route path='/arrivals'>
-              {arrivalsList.length === 0
-                ? noFlights
-                : arrivalsList.map(flightData => (
-                    <FlightInfo key={flightData.ID} flightData={flightData} />
-                  ))}
-            </Route>
-          </Switch>
-        </tbody>
-      </table>
+      <div className='date-picker'>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label='Choose your date'
+            value={date}
+            onChange={newValue => {
+              setDate(new Date(newValue));
+              localStorage.setItem('flightsDate', new Date(newValue));
+            }}
+            renderInput={params => <TextField {...params} />}
+          />
+        </LocalizationProvider>
+      </div>
+      {isDataFetching && <CircularProgress sx={{ marginTop: '36px' }} />}
+      {!isDataFetching && (
+        <table className='table'>
+          <thead className='table__header'>
+            <tr>
+              <th>Terminal</th>
+              <th>Local time</th>
+              <th>Destination</th>
+              <th>Status</th>
+              <th>Airline</th>
+              <th>Flight</th>
+            </tr>
+          </thead>
+          <tbody className='table__body'>
+            <Switch>
+              <Route exact path='/'>
+                {showData(departuresList)}
+              </Route>
+              <Route path='/arrivals'>{showData(arrivalsList)}</Route>
+            </Switch>
+          </tbody>
+        </table>
+      )}
     </BrowserRouter>
   );
-};
-
-const mapState = state => {
-  return {
-    departuresList: departureListSelector(state),
-    arrivalsList: arrivalListSelector(state),
-  };
 };
 
 const mapDispatch = {
   getFlightsData,
 };
 
-export default connect(mapState, mapDispatch)(FlightsList);
+export default connect(null, mapDispatch)(FlightsList);
